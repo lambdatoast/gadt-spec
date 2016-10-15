@@ -60,7 +60,7 @@ trip = let (t, tOps) = run TripModel (loadTrip (Id 42))
 
 -- var program = DB.find(x).map(getAgency)
 program :: DBOp Read Tourist (DBOp Read Agency Id)
-program = (DBFind .:. Map getAgency)
+program = DBFind .:. Map getAgency
 
 program2 :: DBOp Read Agency (DBOp Create Tourist Id)
 program2 = DBFind .:. Map createTourist
