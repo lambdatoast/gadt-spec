@@ -19,6 +19,7 @@ data DBOp o r a where
 {- Business-specific modeling -}
 
 newtype Id = Id Int
+newtype ErrorMsg = ErrorMsg String
 
 data Tourist
 data Agency
@@ -33,6 +34,9 @@ data RunArg r where
 
 run :: RunArg r -> DBOp o r a -> a
 run = undefined
+
+runM :: Monad m => RunArg r -> DBOp o r a -> m a
+runM = undefined
 
 {- Business-specific specs -}
 
@@ -73,3 +77,6 @@ trip :: (Trip, [Tourist])
 trip = let (t, tOps) = run TripModel (loadTrip (Id 42))
        in (t, tOps .:. fmap (run TouristModel))
 
+-- For the case where evaluation yields an Either
+r3 :: Either ErrorMsg Id
+r3 = runM AgencyModel program2 >>= runM TouristModel
