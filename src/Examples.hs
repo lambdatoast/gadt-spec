@@ -52,10 +52,6 @@ createTourist c = DBCreate .:. Map _id
 loadTrip :: Id -> DBOp Read Trip (Trip, [DBOp Read Tourist Tourist])
 loadTrip i = DBFind .:. Map (\trip -> (trip, tourists trip .:. fmap (const DBFind)))
 
-trip :: (Trip, [Tourist])
-trip = let (t, tOps) = run TripModel (loadTrip (Id 42))
-       in (t, tOps .:. fmap (run TouristModel))
-
 {-- Programs --}
 
 -- var program = DB.find(x).map(getAgency)
@@ -65,10 +61,15 @@ program = DBFind .:. Map getAgency
 program2 :: DBOp Read Agency (DBOp Create Tourist Id)
 program2 = DBFind .:. Map createTourist
 
-{-- Runs --}
+{-- Evaluations --}
 
 r :: Id
 r = run TouristModel program .:. run AgencyModel
 
 r2 :: Id
 r2 = run AgencyModel program2 .:. run TouristModel
+
+trip :: (Trip, [Tourist])
+trip = let (t, tOps) = run TripModel (loadTrip (Id 42))
+       in (t, tOps .:. fmap (run TouristModel))
+
