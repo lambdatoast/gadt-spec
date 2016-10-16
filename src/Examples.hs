@@ -49,38 +49,38 @@ _id :: a -> Id
 _id = undefined
 
 -- convenience
-(.:.) = flip ($)
+(|>) = flip ($)
 
 -- function getAgency(criteria) { return DB.find(criteria) }
 getAgency :: Tourist -> DBOp Read Agency Id
-getAgency t = Find .:. Map _id
+getAgency t = Find |> Map _id
 
 createTourist :: Agency -> DBOp Create Tourist Id
-createTourist c = Create .:. Map _id
+createTourist c = Create |> Map _id
 
 loadTrip :: Id -> DBOp Read Trip (Trip, [DBOp Read Tourist Tourist])
-loadTrip i = Find .:. Map (\trip -> (trip, tourists trip .:. fmap (const Find)))
+loadTrip i = Find |> Map (\trip -> (trip, tourists trip |> fmap (const Find)))
 
 {-- Programs --}
 
 -- var program = DB.find(x).map(getAgency)
 program :: DBOp Read Tourist (DBOp Read Agency Id)
-program = Find .:. Map getAgency
+program = Find |> Map getAgency
 
 program2 :: DBOp Read Agency (DBOp Create Tourist Id)
-program2 = Find .:. Map createTourist
+program2 = Find |> Map createTourist
 
 {-- Evaluations --}
 
 r :: Id
-r = run TouristModel program .:. run AgencyModel
+r = run TouristModel program |> run AgencyModel
 
 r2 :: Id
-r2 = run AgencyModel program2 .:. run TouristModel
+r2 = run AgencyModel program2 |> run TouristModel
 
 trip :: (Trip, [Tourist])
 trip = let (t, tOps) = run TripModel (loadTrip (Id 42))
-       in (t, tOps .:. fmap (run TouristModel))
+       in (t, tOps |> fmap (run TouristModel))
 
 -- For the case where evaluation yields an Either
 r3 :: Either ErrorMsg Id
@@ -88,11 +88,11 @@ r3 = runM AgencyModel program2 >>= runM TouristModel
 
 -- For the case where evaluation yields some Monad
 r4 :: Promise p => p (Either ErrorMsg Id)
-r4 = runP AgencyModel program2 .:. chainP (\opE -> opE >>= runP TouristModel)
+r4 = runP AgencyModel program2 |> chainP (\opE -> opE >>= runP TouristModel)
 
 -- For the case where evaluation yields specifically a Promise of an Either
 r5 :: Promise p => p (Either ErrorMsg Id)
-r5 = runPE AgencyModel program2 .:. chainP (foldE (when . Left) (runPE TouristModel))
+r5 = runPE AgencyModel program2 |> chainP (foldE (when . Left) (runPE TouristModel))
 
 -- var getTourists = loadAgency(criteria).map(loadTourists)
 loadAgency :: Id -> DBOp Read Agency Agency
@@ -102,14 +102,14 @@ loadTourists :: Agency -> DBOp Read Tourist [Tourist]
 loadTourists = undefined
 
 getTourists :: DBOp Read Agency (DBOp Read Tourist [Tourist])
-getTourists = loadAgency (Id 42) .:. Map loadTourists
+getTourists = loadAgency (Id 42) |> Map loadTourists
 
 res6 :: Promise p => p (Either ErrorMsg [Tourist])
-res6 = runPE AgencyModel getTourists .:. chainP (foldE (when . Left) (runPE TouristModel))
+res6 = runPE AgencyModel getTourists |> chainP (foldE (when . Left) (runPE TouristModel))
 -- var res6 = runPE(AgencyModel)(getTourists).then(E.fold(R.compose(q.when, E.Left), runPE(TouristModel)))
 
 -- res7 :: Promise p => p (Either ErrorMsg [Tourist])
--- res7 = runPE AgencyModel getTourists .:. chainP (chainE (runPE TouristModel))
+-- res7 = runPE AgencyModel getTourists |> chainP (chainE (runPE TouristModel))
 {- Type error:
     • Couldn't match type ‘p’ with ‘Either err0’
       Expected type: p (Either ErrorMsg [Tourist])
