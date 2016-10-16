@@ -51,6 +51,9 @@ runPE = undefined
 
 foldE = either 
 
+chainE :: (a -> Either err b) -> Either err a -> Either err b
+chainE = (=<<)
+
 {- Business-specific specs -}
 
 _id :: a -> Id
@@ -114,3 +117,12 @@ getTourists = loadAgency (Id 42) .:. Map loadTourists
 
 res6 :: Promise p => p (Either ErrorMsg [Tourist])
 res6 = runPE AgencyModel getTourists .:. chainP (foldE (when . Left) (runPE TouristModel))
+-- var res6 = runPE(AgencyModel)(getTourists).then(E.fold(R.compose(q.when, E.Left), runPE(TouristModel)))
+
+-- res7 :: Promise p => p (Either ErrorMsg [Tourist])
+-- res7 = runPE AgencyModel getTourists .:. chainP (chainE (runPE TouristModel))
+{- Type error:
+    • Couldn't match type ‘p’ with ‘Either err0’
+      Expected type: p (Either ErrorMsg [Tourist])
+        Actual type: Either err0 (Either ErrorMsg [Tourist])
+-}
