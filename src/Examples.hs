@@ -2,19 +2,7 @@
 module Examples where
 
 import Prelude hiding (Read)
-
-{- DB operations DSL -}
-
-data Create
-data Read
-data Update
-data Delete
-
-data DBOp o r a where
-  DBFind :: DBOp Read r a
-  DBCreate :: DBOp Create r a
-  Chain  :: (a -> DBOp o r b) -> DBOp o r a -> DBOp o r b
-  Map    :: (a -> b) -> DBOp o r a -> DBOp o r b
+import DBOp
 
 {- Business-specific modeling -}
 
@@ -65,22 +53,22 @@ _id = undefined
 
 -- function getAgency(criteria) { return DB.find(criteria) }
 getAgency :: Tourist -> DBOp Read Agency Id
-getAgency t = DBFind .:. Map _id
+getAgency t = Find .:. Map _id
 
 createTourist :: Agency -> DBOp Create Tourist Id
-createTourist c = DBCreate .:. Map _id
+createTourist c = Create .:. Map _id
 
 loadTrip :: Id -> DBOp Read Trip (Trip, [DBOp Read Tourist Tourist])
-loadTrip i = DBFind .:. Map (\trip -> (trip, tourists trip .:. fmap (const DBFind)))
+loadTrip i = Find .:. Map (\trip -> (trip, tourists trip .:. fmap (const Find)))
 
 {-- Programs --}
 
 -- var program = DB.find(x).map(getAgency)
 program :: DBOp Read Tourist (DBOp Read Agency Id)
-program = DBFind .:. Map getAgency
+program = Find .:. Map getAgency
 
 program2 :: DBOp Read Agency (DBOp Create Tourist Id)
-program2 = DBFind .:. Map createTourist
+program2 = Find .:. Map createTourist
 
 {-- Evaluations --}
 
@@ -113,7 +101,7 @@ loadAgency = undefined
 loadTourists :: Agency -> DBOp Read Tourist [Tourist]
 loadTourists = undefined
 
-getTourists :: DBOp Examples.Read Agency (DBOp Examples.Read Tourist [Tourist])
+getTourists :: DBOp Read Agency (DBOp Read Tourist [Tourist])
 getTourists = loadAgency (Id 42) .:. Map loadTourists
 
 res6 :: Promise p => p (Either ErrorMsg [Tourist])
