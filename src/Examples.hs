@@ -39,18 +39,17 @@ runM :: Monad m => RunArg r -> DBOp o r a -> m a
 runM = undefined
 
 class Monad p => Promise p where
+  when :: a -> p a
   thenP :: (a -> b) -> p a -> p b
   chainP :: (a -> p b) -> p a -> p b
-
-class Promise p => PromiseEither p where
-  thenPE :: (a -> b) -> p (Either err a) -> p (Either err b)
-  chainPE :: (a -> p (Either err b)) -> p (Either err a) -> p (Either err b)
 
 runP :: (Monad m, Promise p) => RunArg r -> DBOp o r a -> p (m a)
 runP = undefined
 
-runPE :: PromiseEither p => RunArg r -> DBOp o r a -> p (Either err a)
+runPE :: Promise p => RunArg r -> DBOp o r a -> p (Either err a)
 runPE = undefined
+
+foldE = either 
 
 {- Business-specific specs -}
 
@@ -100,5 +99,18 @@ r4 :: Promise p => p (Either ErrorMsg Id)
 r4 = runP AgencyModel program2 .:. chainP (\opE -> opE >>= runP TouristModel)
 
 -- For the case where evaluation yields specifically a Promise of an Either
-r5 :: PromiseEither p => p (Either ErrorMsg Id)
-r5 = runPE AgencyModel program2 .:. chainPE (runPE TouristModel)
+r5 :: Promise p => p (Either ErrorMsg Id)
+r5 = runPE AgencyModel program2 .:. chainP (foldE (when . Left) (runPE TouristModel))
+
+-- var getTourists = loadAgency(criteria).map(loadTourists)
+loadAgency :: Id -> DBOp Read Agency Agency
+loadAgency = undefined
+
+loadTourists :: Agency -> DBOp Read Tourist [Tourist]
+loadTourists = undefined
+
+getTourists :: DBOp Examples.Read Agency (DBOp Examples.Read Tourist [Tourist])
+getTourists = loadAgency (Id 42) .:. Map loadTourists
+
+res6 :: Promise p => p (Either ErrorMsg [Tourist])
+res6 = runPE AgencyModel getTourists .:. chainP (foldE (when . Left) (runPE TouristModel))
