@@ -49,6 +49,7 @@ runP = undefined
 runPE :: Promise p => RunArg r -> DBOp o r a -> p (Either err a)
 runPE = undefined
 
+foldE :: (a -> c) -> (b -> c) -> Either a b -> c
 foldE = either 
 
 chainE :: (a -> Either err b) -> Either err a -> Either err b
