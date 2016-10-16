@@ -38,6 +38,20 @@ run = undefined
 runM :: Monad m => RunArg r -> DBOp o r a -> m a
 runM = undefined
 
+class Monad p => Promise p where
+  thenP :: (a -> b) -> p a -> p b
+  chainP :: (a -> p b) -> p a -> p b
+
+class Promise p => PromiseEither p where
+  thenPE :: (a -> b) -> p (Either err a) -> p (Either err b)
+  chainPE :: (a -> p (Either err b)) -> p (Either err a) -> p (Either err b)
+
+runP :: (Monad m, Promise p) => RunArg r -> DBOp o r a -> p (m a)
+runP = undefined
+
+runPE :: PromiseEither p => RunArg r -> DBOp o r a -> p (Either err a)
+runPE = undefined
+
 {- Business-specific specs -}
 
 _id :: a -> Id
@@ -80,3 +94,11 @@ trip = let (t, tOps) = run TripModel (loadTrip (Id 42))
 -- For the case where evaluation yields an Either
 r3 :: Either ErrorMsg Id
 r3 = runM AgencyModel program2 >>= runM TouristModel
+
+-- For the case where evaluation yields some Monad
+r4 :: Promise p => p (Either ErrorMsg Id)
+r4 = runP AgencyModel program2 .:. chainP (\opE -> opE >>= runP TouristModel)
+
+-- For the case where evaluation yields specifically a Promise of an Either
+r5 :: PromiseEither p => p (Either ErrorMsg Id)
+r5 = runPE AgencyModel program2 .:. chainPE (runPE TouristModel)
